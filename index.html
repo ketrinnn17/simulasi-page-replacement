@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulasi Manajemen Memori - Algoritma Page Replacement</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            // Palet Dark Mode Baru (Lebih Pro)
+            primary: "#2563eb", // blue-600
+            secondary: "#4f46e5", // indigo-600
+            accent: "#0d9488", // teal-600
+            success: "#10b981", // green-600
+            danger: "#e11d48", // rose-600
+            warning: "#f59e0b", // amber-500
+
+            // Latar Belakang Baru
+            dark: "#1f2937", // gray-800
+            deep: "#111827", // gray-900
+            darker: "#030712", // gray-950
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="bg-darker text-gray-300">
+  <header class="bg-gray-900/80 backdrop-blur-md shadow-lg sticky top-0 z-10 border-b border-gray-800">
+    <div class="container mx-auto px-4 py-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <i class="fas fa-memory text-primary text-2xl"></i>
+          <div>
+            <h1 class="text-xl font-bold text-white">
+              Simulasi Manajemen Memori Virtual
+            </h1>
+            <p class="text-sm text-gray-400">
+              Algoritma Page Replacement - Sistem Operasi
+            </p>
+          </div>
+        </div>
+
+        <div class="hidden md:flex space-x-4">
+          <!--muti-->
+          <a href="#beranda" class="text-primary hover:text-secondary font-medium transition-colors">Beranda</a>
+          <a href="#algoritma" class="text-gray-400 hover:text-primary font-medium transition-colors">Detail Algoritma</a>
+          <a href="#simulasi" class="text-gray-400 hover:text-primary font-medium transition-colors">Simulasi</a>
+          <!--muti akhir-->
+          <a href="#perbandingan" class="text-gray-400 hover:text-primary font-medium transition-colors">Perbandingan</a>
+          <a href="#tentang" class="text-gray-400 hover:text-primary font-medium transition-colors">Tentang</a>
+        </div>
+
+        <div class="md:hidden">
+          <button id="mobile-menu-btn" class="text-white text-2xl p-2 rounded-lg hover:bg-gray-700 transition">
+            <i id="mobile-menu-icon" class="fas fa-bars"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="mobile-menu" class="hidden md:hidden mt-4">
+        <a href="#simulasi"
+          class="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mobile-menu-link">Simulasi</a>
+        <a href="#perbandingan"
+          class="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mobile-menu-link">Perbandingan</a>
+        <a href="#tentang"
+          class="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors mobile-menu-link">Tentang</a>
+      </div>
+    </div>
+  </header>
+
+  <!--muti-->
+  <section
+id="beranda"
+class="bg-gradient-to-r from-blue-600 via-indigo-700 to-blue-800 text-white flex items-center justify-center min-h-screen overflow-hidden px-8 lg:px-24 pb-0 scroll-mt-20"
+>
+<div
+  class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center max-w-7xl w-full text-center lg:text-left animate-fade-in-up"
+>
+  <!-- Kiri: Judul dan tombol -->
+  <div class="flex flex-col items-center lg:items-start space-y-6">
+    <h2
+      class="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight drop-shadow-lg"
+      style="text-shadow: 0 0 15px rgba(59,130,246,0.4);"
+    >
+      Simulasi Manajemen Memori <br />
+      <span
+        class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-white"
+      >
+        dengan Algoritma Page Replacement
+      </span>
+    </h2>
+
+    <p
+      class="text-lg md:text-xl max-w-xl text-gray-100 leading-relaxed"
+    >
+      Visualisasi interaktif untuk memahami cara kerja
+      <span class="font-semibold text-yellow-200">algoritma page replacement</span>
+      dalam manajemen memori virtual pada sistem operasi.
+    </p>
+
+    <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-2">
+      <a
+        href="#simulasi"
+        class="bg-white text-blue-700 font-bold py-3 px-8 rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transform transition-all duration-300"
+      >
+        <i class="fas fa-play-circle mr-2"></i>Mulai Simulasi
+      </a>
+      <a
+        href="#perbandingan"
+        class="bg-transparent border-2 border-white text-white font-bold py-3 px-8 rounded-xl hover:bg-white hover:text-blue-700 hover:-translate-y-1 transform transition-all duration-300"
+      >
+        <i class="fas fa-chart-bar mr-2"></i>Bandingkan Algoritma
+      </a>
+    </div>
+  </div>
+
+  <!-- Kanan: Fokus Simulasi -->
+  <div
+    class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 text-base text-gray-100 shadow-lg hover:shadow-2xl transition duration-500 lg:mx-auto max-w-lg"
+  >
+    <h3 class="text-2xl font-semibold mb-4 text-white text-center">
+      Fokus Simulasi
+    </h3>
+    <p class="leading-relaxed text-gray-100 text-center">
+      Dalam simulasi ini, fokus utama berada pada tiga algoritma klasik:
+      <span class="font-semibold text-yellow-200">FIFO</span>,
+      <span class="font-semibold text-yellow-200">LRU</span>, dan
+      <span class="font-semibold text-yellow-200">Optimal</span>,
+      yang menunjukkan perbedaan pendekatan dalam menentukan halaman yang
+      diganti sehingga memudahkan pemahaman konsep
+      <span class="font-semibold">manajemen memori virtual</span>
+      pada sistem operasi.
+    </p>
+    <div class="mt-6 flex justify-center space-x-4 text-yellow-200">
+      <i class="fas fa-microchip text-3xl"></i>
+      <i class="fas fa-memory text-3xl"></i>
+      <i class="fas fa-server text-3xl"></i>
+    </div>
+  </div>
+</div>
+</section>
+<!-- muti akhir-->
+
+
+  <!-- azaa -->
+  <section id="algoritma" class="py-16 bg-deep scroll-mt-24">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-12 text-white">
+        Detail Algoritma Page Replacement
+      </h2>
+
+      <div class="space-y-6">
+        <div class="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-lg">
+          <div class="flex justify-between items-center cursor-pointer" id="fifo-detail-toggle">
+            <h3 class="text-xl font-bold text-primary">
+              FIFO (First-In, First-Out)
+            </h3>
+            <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+          </div>
+          <div class="algorithm-details mt-4" id="fifo-detail">
+            <p class="text-gray-400 mb-4">
+              Algoritma FIFO menggantikan halaman yang paling lama berada di
+              memori. Ini adalah algoritma yang sederhana tetapi tidak selalu
+              efisien karena tidak mempertimbangkan frekuensi penggunaan
+              halaman. Halaman yang diganti adalah halaman yang berada di
+              "depan" antrian (queue).
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-deep p-4 rounded-lg">
+                <h4 class="font-bold text-gray-300 mb-2">Keuntungan:</h4>
+                <ul class="list-disc pl-5 text-gray-400">
+                  <li>Implementasi sederhana</li>
+                  <li>Overhead rendah</li>
+                </ul>
+              </div>
+              <div class="bg-deep p-4 rounded-lg">
+                <h4 class="font-bold text-gray-300 mb-2">Kekurangan:</h4>
+                <ul class="list-disc pl-5 text-gray-400">
+                  <li>Performanya seringkali buruk</li>
+                  <li>Rentan terhadap Belady's Anomaly</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!--azaa-->
+        <div class="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-lg">
+          <div class="flex justify-between items-center cursor-pointer" id="lru-detail-toggle">
+            <h3 class="text-xl font-bold text-primary">
+              LRU (Least Recently Used)
+            </h3>
+            <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+          </div>
+          <div class="algorithm-details mt-4" id="lru-detail">
+            <p class="text-gray-400 mb-4">
+              Algoritma LRU menggantikan halaman yang paling lama tidak
+              digunakan. Ini didasarkan pada prinsip *locality of reference*
+              yang menyatakan bahwa halaman yang baru saja digunakan cenderung
+              akan digunakan lagi. Halaman yang diganti adalah yang paling
+              "awal" dalam antrian penggunaan (paling lama tidak diakses).
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-deep p-4 rounded-lg">
+                <h4 class="font-bold text-gray-300 mb-2">Keuntungan:</h4>
+                <ul class="list-disc pl-5 text-gray-400">
+                  <li>Performanya baik</li>
+                  <li>Mendekati performa optimal</li>
+                </ul>
+              </div>
+              <div class="bg-deep p-4 rounded-lg">
+                <h4 class="font-bold text-gray-300 mb-2">Kekurangan:</h4>
+                <ul class="list-disc pl-5 text-gray-400">
+                  <li>Implementasi kompleks (membutuhkan hardware khusus)</li>
+                  <li>Overhead lebih tinggi daripada FIFO</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!--azaa-->
+        <div class="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-lg">
+          <div class="flex justify-between items-center cursor-pointer" id="optimal-detail-toggle">
+            <h3 class="text-xl font-bold text-primary">Optimal</h3>
+            <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+          </div>
+          <div class="algorithm-details mt-4" id="optimal-detail">
+            <p class="text-gray-400 mb-4">
+              Algoritma Optimal (juga dikenal sebagai OPT atau MIN)
+              menggantikan halaman yang tidak akan digunakan untuk waktu
+              paling lama di masa depan. Algoritma ini memiliki *page fault*
+              terendah tetapi tidak dapat diimplementasikan di dunia nyata
+              karena memerlukan pengetahuan tentang string referensi di masa
+              depan.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-deep p-4 rounded-lg">
+                <h4 class="font-bold text-gray-300 mb-2">Keuntungan:</h4>
+                <ul class="list-disc pl-5 text-gray-400">
+                  <li>Performa terbaik (page fault terendah)</li>
+                  <li>Digunakan sebagai *benchmark* untuk algoritma lain</li>
+                </ul>
+              </div>
+              <div class="bg-deep p-4 rounded-lg">
+                <h4 class="font-bold text-gray-300 mb-2">Kekurangan:</h4>
+                <ul class="list-disc pl-5 text-gray-400">
+                  <li>Tidak mungkin diimplementasikan secara praktis</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!--azaa-->
+
+  <section id="simulasi" class="pt-6 pb-14 bg-gray-900 scroll-mt-16">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-12 text-white">
+        Simulasi Interaktif
+      </h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-xl">
+          <h3 class="text-xl font-bold mb-4 text-white">
+            Konfigurasi Simulasi
+          </h3>
+
+          <div class="mb-6">
+            <label class="block text-gray-300 mb-2">Algoritma Page Replacement</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="fifo-btn"
+                class="algorithm-btn py-2 px-4 border border-gray-600 rounded-lg text-gray-300 font-medium transition-all duration-200">
+                FIFO
+              </button>
+              <button id="lru-btn"
+                class="algorithm-btn py-2 px-4 border border-gray-600 rounded-lg text-gray-300 font-medium transition-all duration-200">
+                LRU
+              </button>
+              <button id="optimal-btn"
+                class="algorithm-btn py-2 px-4 border border-gray-600 rounded-lg text-gray-300 font-medium transition-all duration-200">
+                Optimal
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-gray-300 mb-2">Jumlah Frame Memori:
+              <span id="frame-value" class="font-bold text-primary">3</span></label>
+            <input type="range" id="frame-slider" min="1" max="8" value="3" class="w-full" />
+            <div class="flex justify-between text-gray-400 text-sm">
+              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label for="write-toggle" class="flex items-center space-x-3 text-gray-300 cursor-pointer">
+              <input type="checkbox" id="write-toggle"
+                class="form-checkbox bg-gray-700 border-gray-600 text-primary rounded focus:ring-primary focus:ring-offset-deep" />
+              <span>Simulasikan "Write" (Dirty Bit / M-Bit)</span>
+            </label>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-gray-300 mb-2">Kecepatan Simulasi</label>
+            <input type="range" id="speed-slider" min="1" max="10" value="5" class="w-full" />
+            <div class="flex justify-between text-gray-400 text-sm">
+              <span>Lambat</span><span>Sedang</span><span>Cepat</span>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-gray-300 mb-2">String Referensi Halaman</label>
+            <div class="flex space-x-2 mb-2">
+              <input type="text" id="reference-input" value="1,2,3,4,1,2,5,1,2,3,4,5"
+                class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400" />
+              <button id="generate-random"
+                class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition control-btn">
+                <i class="fas fa-random"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex space-x-4 mb-4">
+            <button id="start-btn"
+              class="flex-1 bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary transition control-btn flex items-center justify-center">
+              <i class="fas fa-play mr-2"></i> Mulai Simulasi
+            </button>
+            <button id="reset-btn"
+              class="flex-1 bg-gray-700 text-gray-300 py-3 rounded-lg font-bold hover:bg-gray-600 transition control-btn flex items-center justify-center">
+              <i class="fas fa-redo mr-2"></i> Reset
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <button id="prev-btn"
+              class="bg-gray-700 text-gray-300 py-2 rounded-lg font-bold hover:bg-gray-600 transition control-btn flex items-center justify-center">
+              <i class="fas fa-step-backward mr-2"></i>
+            </button>
+            <button id="pause-btn"
+              class="bg-gray-700 text-gray-300 py-2 rounded-lg font-bold hover:bg-gray-600 transition control-btn flex items-center justify-center">
+              <i class="fas fa-pause mr-2"></i>
+            </button>
+            <button id="next-btn"
+              class="bg-gray-700 text-gray-300 py-2 rounded-lg font-bold hover:bg-gray-600 transition control-btn flex items-center justify-center">
+              <i class="fas fa-step-forward mr-2"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-xl">
+          <h3 class="text-xl font-bold mb-4 text-white">
+            Visualisasi Memori - <span id="algorithm-name">FIFO</span>
+          </h3>
+
+          <div class="mb-6">
+            <div class="flex justify-between mb-2">
+              <span class="text-gray-300">Status: <span id="status" class="font-bold">Siap</span></span>
+              <span class="text-gray-300">Langkah: <span id="step-counter">0/0</span></span>
+              <span class="text-gray-300">Kecepatan: <span id="speed-value">5</span>x</span>
+            </div>
+
+            <div id="memory-frames" class="flex flex-wrap justify-center mb-6"></div>
+
+            <div id="clock-pointer-legend" class="text-center text-sm text-gray-400 mb-4 hidden">
+              <span class="inline-block w-4 h-4 border-4 border-warning rounded-full mr-2 align-middle"></span>
+              Pointer Clock
+              <span
+                class="inline-block w-4 h-4 bg-secondary text-deep rounded-full ml-4 mr-2 align-middle text-xs leading-4">R</span>
+              Use Bit (Referenced)
+              <span
+                class="inline-block w-4 h-4 bg-danger text-white rounded-full ml-4 mr-2 align-middle text-xs leading-4">M</span>
+              Dirty Bit (Modified)
+            </div>
+
+            <div id="queue-visualization" class="mt-4 mb-6 hidden">
+              <h4 class="font-bold text-gray-300 mb-2">
+                Visualisasi Antrian (<span id="queue-algo-name"></span>)
+              </h4>
+              <div class="flex items-center gap-2 p-3 bg-dark rounded-lg overflow-x-auto">
+                <span class="text-sm font-medium text-gray-300">DEPAN</span>
+                <i class="fas fa-arrow-right text-gray-500"></i>
+                <div id="queue-container" class="flex-1 flex gap-2"></div>
+                <i class="fas fa-arrow-left text-gray-500"></i>
+                <span class="text-sm font-medium text-gray-300">BELAKANG</span>
+              </div>
+            </div>
+
+            <div class="performance-meter">
+              <div id="performance-hit" class="performance-fill hit-fill" style="width: 0%"></div>
+              <div id="performance-miss" class="performance-fill miss-fill" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-sm text-gray-400">
+              <span>Hit: <span id="performance-hit-text">0%</span></span>
+              <span>Miss: <span id="performance-miss-text">0%</span></span>
+            </div>
+
+            <div id="reference-string" class="reference-string"></div>
+          </div>
+
+          <div class="bg-deep border border-gray-700 p-4 rounded-lg shadow-inner">
+            <h4 class="font-bold text-gray-300 mb-2">Timeline Simulasi</h4>
+            <div id="timeline-container" class="timeline-container"></div>
+          </div>
+
+          <div class="bg-darker p-4 rounded-lg shadow-inner mt-6">
+            <h4 class="font-bold text-gray-300 mb-2">Log Simulasi</h4>
+            <div id="simulation-log" class="h-32 overflow-y-auto text-sm font-mono">
+              <p class="text-gray-500">
+                Simulasi belum dimulai. Klik "Mulai Simulasi" untuk memulai.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-deep">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-12 text-white">
+        Statistik Performa Detil
+      </h2>
+
+      <!-- Kartu Statistik -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div class="stats-card bg-gray-800 p-6 rounded-xl shadow-lg text-center">
+          <div class="text-4xl font-bold text-primary mb-2" id="hit-count">0</div>
+          <div class="text-gray-300 font-medium">Page Hit</div>
+          <div class="text-sm text-gray-500 mt-2">
+            Halaman ditemukan di memori
+          </div>
+        </div>
+
+        <div class="stats-card bg-gray-800 p-6 rounded-xl shadow-lg text-center">
+          <div class="text-4xl font-bold text-danger mb-2" id="miss-count">0</div>
+          <div class="text-gray-300 font-medium">Page Fault</div>
+          <div class="text-sm text-gray-500 mt-2">
+            Halaman tidak ditemukan di memori
+          </div>
+        </div>
+
+        <div class="stats-card bg-gray-800 p-6 rounded-xl shadow-lg text-center">
+          <div class="text-4xl font-bold text-success mb-2" id="hit-rate">0%</div>
+          <div class="text-gray-300 font-medium">Hit Rate</div>
+          <div class="text-sm text-gray-500 mt-2">
+            Persentase keberhasilan akses
+          </div>
+        </div>
+      </div>
+
+      <!-- Grafik (keluar dari grid) -->
+      <div class="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-lg w-full">
+        <h3 class="text-xl font-bold mb-4 text-white text-center">
+          Grafik Performa Kumulatif
+        </h3>
+        <div class="comparison-chart-container">
+          <canvas id="performance-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="perbandingan" class="py-16 bg-gray-900 scroll-mt-24">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-12 text-white">
+        Perbandingan Algoritma
+      </h2>
+
+      <div class="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-xl mb-8">
+        <h3 class="text-xl font-bold mb-4 text-white">
+          Uji Performa dengan Konfigurasi Sama
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label class="block text-gray-300 mb-2">String Referensi untuk Perbandingan</label>
+            <div class="flex space-x-2">
+              <input type="text" id="comparison-reference" value="1,2,3,4,1,2,5,1,2,3,4,5"
+                class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400" />
+              <button id="comparison-generate"
+                class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition control-btn">
+                <i class="fas fa-random"></i>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-gray-300 mb-2">Jumlah Frame:
+              <span id="comparison-frame-value" class="font-bold text-primary">3</span></label>
+            <input type="range" id="comparison-frame-slider" min="1" max="8" value="3" class="w-full" />
+          </div>
+        </div>
+
+        <button id="run-comparison"
+          class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary transition control-btn mb-4">
+          <i class="fas fa-chart-line mr-2"></i> Jalankan Perbandingan
+        </button>        
+      </div>
+
+      <div
+        class="bg-gray-800 border border-gray-700 p-6 rounded-xl shadow-xl"
+      >
+        <h3 class="text-xl font-bold mb-4 text-white">Hasil Perbandingan</h3>
+        <div class="comparison-chart-container">
+          <canvas id="comparison-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+         
+
+          <div class="flex justify-between items-center cursor-pointer" id="lfu-detail-toggle">
+            <h3 class="text-xl font-bold text-primary">
+    
+          </div>
+        </div>
+
+          <div class="flex justify-between items-center cursor-pointer" id="clock-detail-toggle">
+            <h3 class="text-xl font-bold text-primary">
+
+          </div>
+        </div>
+          <div class="flex justify-between items-center cursor-pointer" id="optimal-detail-toggle">
+   
+          </div>
+          <div class="algorithm-details mt-4" id="optimal-detail">
+            <p class="text-gray-400 mb-4">
+        
+
+          <div class="flex justify-between items-center cursor-pointer" id="random-detail-toggle">
+            <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+          </div>
+          <div class="algorithm-details mt-4" id="random-detail">
+            <p class="text-gray-400 mb-4">
+             
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tentang" class="py-16 bg-gray-900 scroll-mt-24">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-12 text-white">
+        Tentang Simulasi Ini
+      </h2>
+
+      <div class="max-w-3xl mx-auto bg-gray-800 border border-gray-700 p-8 rounded-xl shadow-xl">
+        <p class="text-gray-400 mb-4">
+          Simulasi Manajemen Memori Virtual ini dikembangkan untuk membantu
+          memahami konsep page replacement algorithms dalam sistem operasi.
+          Dengan visualisasi yang interaktif, pengguna dapat melihat secara
+          langsung bagaimana berbagai algoritma bekerja dalam skenario yang
+          berbeda.
+        </p>
+
+        <p class="text-gray-400 mb-4">
+          Fitur-fitur yang disediakan meliputi simulasi real-time,
+          perbandingan performa antar algoritma, analisis statistik (termasuk
+          **Total Cost** I/O), dan penjelasan detail tentang setiap algoritma.
+          Simulasi ini cocok digunakan untuk tujuan edukasi maupun penelitian.
+        </p>
+
+        <div class="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-lg mt-6">
+          <h3 class="font-bold text-lg mb-2">
+            Konsep Dasar Manajemen Memori Virtual
+          </h3>
+          <ul class="list-disc pl-5">
+            <li>
+              Memori virtual memungkinkan program menggunakan memori lebih
+              besar dari kapasitas RAM fisik
+            </li>
+            <li>Halaman (page) adalah unit dasar dalam memori virtual</li>
+            <li>
+              Page fault terjadi ketika halaman yang dibutuhkan tidak ada di
+              memori utama
+            </li>
+            <li>
+              Algoritma page replacement menentukan halaman mana yang akan
+              digantikan ketika terjadi page fault
+            </li>
+            <li>
+              **Dirty Bit (M-Bit):** Menandai halaman yang telah dimodifikasi.
+              Halaman "kotor" harus ditulis ke disk sebelum diganti, yang
+              lebih "mahal" daripada mengganti halaman "bersih".
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="bg-darker text-white py-8">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div>
+          <h3 class="font-bold text-lg mb-4">Simulasi Memori Virtual</h3>
+          <p class="text-gray-400">
+            Alat edukasi interaktif untuk mempelajari algoritma page
+            replacement dalam sistem operasi.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-4">Tautan Cepat</h3>
+          <ul class="space-y-2">
+            <!--muti-->
+            <li>
+              <a
+                href="#beranda"
+                class="text-gray-400 hover:text-white transition"
+                >Beranda</a
+              >
+            </li>
+            <li>
+              <a
+                href="#algoritma"
+                class="text-gray-400 hover:text-white transition"
+                >Detail Algoritma</a
+              >
+            </li>
+            <li>
+              <a
+                href="#simulasi"
+                class="text-gray-400 hover:text-white transition"
+                >Simulasi</a
+              >
+            </li>
+            <li>
+              <a
+                href="#perbandingan"
+                class="text-gray-400 hover:text-white transition"
+                >Perbandingan</a
+              >
+            </li>
+            <li>
+              <a
+                href="#tentang"
+                class="text-gray-400 hover:text-white transition"
+                >Tentang</a
+              >
+            </li>
+            <!--muti akhir-->
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-4">Kontak</h3>
+          <p class="text-gray-400">
+            Untuk pertanyaan atau saran, silakan hubungi melalui email:
+            <a href="mailto:info@simulasimemori.com" class="text-secondary hover:underline">247006111048@stundent.unsil.ac.id</a>
+          </p>
+        </div>
+      </div>
+      <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+        <p>
+          &copy; 2025 Simulasi Manajemen Memori Virtual. Dibuat untuk
+          pembelajaran sistem operasi.
+        </p>
+      </div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+
+</html>
