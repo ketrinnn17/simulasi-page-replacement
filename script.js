@@ -1324,3 +1324,12 @@ function addLog(message, className = "text-gray-300") {
 
   logContainer.scrollTop = logContainer.scrollHeight;
 }
+
+// Tutup menu saat link diklik
+document.querySelectorAll(".mobile-menu-link").forEach((link) => {
+  link.addEventListener("click", () => {
+    document.getElementById("mobile-menu").classList.add("hidden");
+    document.getElementById("mobile-menu-icon").classList.remove("fa-xmark");
+    document.getElementById("mobile-menu-icon").classList.add("fa-bars");
+  });
+});
