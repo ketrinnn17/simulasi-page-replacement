@@ -406,7 +406,7 @@ body {
   background: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    #0f172a 150% /* warna bg-gray-900 */
+    #0f172a 100% /* warna bg-gray-900 */
   );
   z-index: 1;
 }
@@ -485,6 +485,29 @@ body {
   height: auto !important; /* Biar menyesuaikan konten */
   overflow: visible !important;
   padding-bottom: 40px;
+}
+
+@media (max-width: 640px) {
+  /* Fix container card fokus simulasi */
+  #beranda .bg-white\/10 {
+    padding: 20px !important;
+    text-align: center;
+  }
+
+  /* Fix icon tetap sejajar */
+  #beranda .icon-row {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 20px !important;
+    margin-top: 20px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* Perkecil ukuran icon agar tidak kepotong */
+  #beranda .icon-row i {
+    font-size: 28px !important;
+  }
 }
 
 /* responsif akhir */
