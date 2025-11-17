@@ -532,3 +532,6 @@ body {
 /* responsif akhir */
 
 
+#generate-random {
+  flex-shrink: 0;
+}
