@@ -406,7 +406,7 @@ body {
   background: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    #0f172a 100% /* warna bg-gray-900 */
+    #0f172a 120% /* warna bg-gray-900 */
   );
   z-index: 1;
 }
@@ -511,3 +511,4 @@ body {
 }
 
 /* responsif akhir */
+
