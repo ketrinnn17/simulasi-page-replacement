@@ -307,11 +307,11 @@ body {
 .algorithm-details {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s ease-out;
+  transition: max-height 0.3s ease-out;
 }
 
 .algorithm-details.open {
-  max-height: 500px;
+  max-height: 600px;
   transition: max-height 0.5s ease-in;
 }
 
@@ -530,4 +530,5 @@ body {
 }
 
 /* responsif akhir */
+
 
