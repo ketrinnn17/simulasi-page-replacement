@@ -532,6 +532,25 @@ body {
 /* responsif akhir */
 
 
-#generate-random {
-  flex-shrink: 0;
+@media (max-width: 480px) {
+
+  /* Perkecil tombol di HP */
+  #generate-random {
+    padding: 6px !important;     /* kecilkan padding */
+    width: 40px !important;      /* tombol fix 40px */
+    height: 40px !important;     /* tinggi fix */
+    flex-shrink: 0 !important;   /* cegah tombol terdorong keluar */
+  }
+
+  /* Biar input bisa mengecil, tidak mendorong tombol */
+  #reference-input {
+    min-width: 0 !important;
+  }
+
+  /* Pastikan barisnya tidak turun & tidak overflow */
+  .flex.space-x-2 {
+    flex-wrap: nowrap !important;    /* tetap 1 baris */
+    overflow: hidden !important;     /* cegah keluar jalur */
+  }
 }
+
