@@ -372,7 +372,7 @@ body {
   bottom: -1px;
   left: 0;
   right: 0;
-  height: 40px;           /* ketebalan garis penutup */
+  height: 40px; /* ketebalan garis penutup */
   background-color: #111827; /* warna dasar abu gelap (bg-gray-900) */
   z-index: 2;
 }
@@ -394,3 +394,97 @@ body {
   z-index: 3;
 }
 /* muti akhir*/
+
+/* --- GRADIENT TRANSISI AGAR MENYATU DENGAN BAGIAN BAWAH --- */
+#beranda::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    #0f172a 150% /* warna bg-gray-900 */
+  );
+  z-index: 1;
+}
+
+/* responsif baru */
+/* --- RESPONSIVE BERANDA (Hero Section) --- */
+@media (max-width: 640px) {
+  #beranda {
+    height: 100vh;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 20px !important;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 0;
+    padding-bottom: 60px;
+    z-index: 1;
+  }
+
+  #beranda h2 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+  }
+
+  #beranda p {
+    font-size: 1rem !important;
+    margin-top: 10px;
+    text-align: center !important;
+  }
+
+  #beranda .grid {
+    gap: 30px !important;
+  }
+
+  #beranda .flex {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #beranda a {
+    width: 100% !important;
+  }
+
+  #beranda .bg-white\/10 {
+    margin-top: 10px;
+    padding: 20px !important;
+  }
+}
+
+/* NAVBAR MOBILE FIX */
+@media (max-width: 640px) {
+  header .container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  #mobile-menu-btn {
+    padding: 6px 10px !important;
+  }
+
+  #mobile-menu a {
+    font-size: 15px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  section {
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+  }
+}
+
+/* --- FIX HERO AGAR TIDAK TERPOTONG DI HP --- */
+#beranda {
+  min-height: 100vh; /* BUKAN height */
+  height: auto !important; /* Biar menyesuaikan konten */
+  overflow: visible !important;
+  padding-bottom: 40px;
+}
+
+/* responsif akhir */
