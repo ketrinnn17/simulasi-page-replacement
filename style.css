@@ -554,3 +554,23 @@ body {
   }
 }
 
+
+.input-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-btn-row input {
+  flex: 1;
+  min-width: 0; /* biar tidak mendorong tombol */
+  height: 48px; /* samakan tinggi */
+}
+
+.input-btn-row button {
+  height: 48px; /* samakan tinggi */
+  width: 48px;  /* supaya lingkaran/icon rapi */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
