@@ -406,7 +406,7 @@ body {
   background: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0%,
-    #0f172a 120% /* warna bg-gray-900 */
+    #0f172a 100% /* warna bg-gray-900 */
   );
   z-index: 1;
 }
@@ -479,6 +479,17 @@ body {
   }
 }
 
+@media (max-width: 640px) {
+  /* Icon fokus simulasi - versi HP */
+  .icon-row {
+    gap: 15px !important;
+  }
+
+  .icon-row i {
+    font-size: 26px !important;
+  }
+}
+
 /* --- FIX HERO AGAR TIDAK TERPOTONG DI HP --- */
 #beranda {
   min-height: 100vh; /* BUKAN height */
@@ -510,5 +521,12 @@ body {
   }
 }
 
-/* responsif akhir */
+/* ICON FOKUS SIMULASI (DESKTOP) */
+.icon-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 25px; /* jarak icon */
+}
 
+/* responsif akhir */
