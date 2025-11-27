@@ -1,3 +1,5 @@
+// ====== script.js (versi "bersih" tanpa Dirty Bit / Clock / LFU / Cost) ======
+
 // Variabel global untuk simulasi
 let currentAlgorithm = "fifo";
 let frameCount = 3;
@@ -15,17 +17,7 @@ let timelineData = [];
 let fifoQueue = [];
 let lruQueue = [];
 
-// --- PENGEMBANGAN BARU (LFU, Clock, Cost) ---
-let useBits = []; // R-Bit (Referenced)
-let dirtyBits = []; // M-Bit (Modified)
-let clockPointer = 0;
-
-// Konstanta Biaya (BARU)
-const MEMORY_ACCESS_COST = 1; // Biaya akses RAM (Hit)
-const DISK_READ_COST = 100; // Biaya baca dari disk (Miss)
-const DISK_WRITE_COST = 200; // Biaya tulis ke disk (Dirty page replacement)
-// ---------------------------------------------
-
+// Statistik per-algoritma (disimpan untuk tampilan perbandingan)
 let algorithmStats = {
   fifo: { hits: 0, misses: 0 },
   lru: { hits: 0, misses: 0 },
@@ -47,15 +39,23 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function initializePage() {
-  // Set nilai awal
-  document.getElementById("frame-value").textContent = frameCount;
-  document.getElementById("comparison-frame-value").textContent = frameCount;
-  document.getElementById("reference-input").value = referenceString.join(",");
-  document.getElementById("comparison-reference").value =
-    referenceString.join(",");
-  document.getElementById("speed-value").textContent = simulationSpeed;
+  // Set nilai awal (cek elemen ada)
+  const fv = document.getElementById("frame-value");
+  if (fv) fv.textContent = frameCount;
 
-  // Set algoritma aktif
+  const cfv = document.getElementById("comparison-frame-value");
+  if (cfv) cfv.textContent = frameCount;
+
+  const ri = document.getElementById("reference-input");
+  if (ri) ri.value = referenceString.join(",");
+
+  const cri = document.getElementById("comparison-reference");
+  if (cri) cri.value = referenceString.join(",");
+
+  const sv = document.getElementById("speed-value");
+  if (sv) sv.textContent = simulationSpeed;
+
+  // Set algoritma aktif (cek button ada)
   setAlgorithm("fifo");
 }
 
@@ -69,6 +69,7 @@ function setupEventListeners() {
       entries.forEach((entry) => {
         const id = entry.target.getAttribute("id");
         const link = document.querySelector(`header a[href="#${id}"]`);
+        if (!link) return;
         if (entry.isIntersecting) {
           // Hapus aktif dari semua
           navLinks.forEach((l) => {
@@ -81,55 +82,57 @@ function setupEventListeners() {
         }
       });
     },
-    { threshold: 0.3 } // 50% bagian section terlihat baru dianggap aktif
+    { threshold: 0.3 }
   );
 
-  // Daftarkan semua section
   sections.forEach((section) => observer.observe(section));
 
-  // Tombol algoritma
-  document
-    .getElementById("fifo-btn")
-    .addEventListener("click", () => setAlgorithm("fifo"));
-  document
-    .getElementById("lru-btn")
-    .addEventListener("click", () => setAlgorithm("lru"));
-  document
-    .getElementById("optimal-btn")
-    .addEventListener("click", () => setAlgorithm("optimal"));
+  // Tombol algoritma (cek ada sebelum pasang listener)
+  const fifoBtn = document.getElementById("fifo-btn");
+  const lruBtn = document.getElementById("lru-btn");
+  const optimalBtn = document.getElementById("optimal-btn");
+  if (fifoBtn) fifoBtn.addEventListener("click", () => setAlgorithm("fifo"));
+  if (lruBtn) lruBtn.addEventListener("click", () => setAlgorithm("lru"));
+  if (optimalBtn)
+    optimalBtn.addEventListener("click", () => setAlgorithm("optimal"));
 
   // Slider frame
-  document
-    .getElementById("frame-slider")
-    .addEventListener("input", function () {
+  const frameSlider = document.getElementById("frame-slider");
+  if (frameSlider) {
+    frameSlider.addEventListener("input", function () {
       frameCount = parseInt(this.value);
-      document.getElementById("frame-value").textContent = frameCount;
+      const fv = document.getElementById("frame-value");
+      if (fv) fv.textContent = frameCount;
       resetSimulation();
       renderMemoryFrames();
     });
+  }
 
-  document
-    .getElementById("comparison-frame-slider")
-    .addEventListener("input", function () {
-      document.getElementById("comparison-frame-value").textContent =
-        this.value;
+  const compFrameSlider = document.getElementById("comparison-frame-slider");
+  if (compFrameSlider) {
+    compFrameSlider.addEventListener("input", function () {
+      const cfv = document.getElementById("comparison-frame-value");
+      if (cfv) cfv.textContent = this.value;
     });
+  }
 
   // Slider kecepatan
-  document
-    .getElementById("speed-slider")
-    .addEventListener("input", function () {
+  const speedSlider = document.getElementById("speed-slider");
+  if (speedSlider) {
+    speedSlider.addEventListener("input", function () {
       simulationSpeed = parseInt(this.value);
-      document.getElementById("speed-value").textContent = simulationSpeed;
+      const sv = document.getElementById("speed-value");
+      if (sv) sv.textContent = simulationSpeed;
       if (isSimulationRunning) {
         restartSimulation();
       }
     });
+  }
 
   // Input referensi
-  document
-    .getElementById("reference-input")
-    .addEventListener("change", function () {
+  const refInput = document.getElementById("reference-input");
+  if (refInput) {
+    refInput.addEventListener("change", function () {
       const input = this.value
         .split(",")
         .map((num) => parseInt(num.trim()))
@@ -140,72 +143,65 @@ function setupEventListeners() {
         renderReferenceString();
       }
     });
+  }
 
   // Tombol generate random
-  document
-    .getElementById("generate-random")
-    .addEventListener("click", generateRandomReference);
-  document
-    .getElementById("comparison-generate")
-    .addEventListener("click", generateComparisonReference);
+  const genBtn = document.getElementById("generate-random");
+  if (genBtn) genBtn.addEventListener("click", generateRandomReference);
+  const compGenBtn = document.getElementById("comparison-generate");
+  if (compGenBtn) compGenBtn.addEventListener("click", generateComparisonReference);
 
   // Kontrol simulasi
-  document
-    .getElementById("start-btn")
-    .addEventListener("click", startSimulation);
-  document
-    .getElementById("reset-btn")
-    .addEventListener("click", resetSimulation);
-  document.getElementById("prev-btn").addEventListener("click", previousStep);
-  document.getElementById("next-btn").addEventListener("click", nextStep);
-  document
-    .getElementById("pause-btn")
-    .addEventListener("click", pauseSimulation);
+  const startBtn = document.getElementById("start-btn");
+  if (startBtn) startBtn.addEventListener("click", startSimulation);
+  const resetBtn = document.getElementById("reset-btn");
+  if (resetBtn) resetBtn.addEventListener("click", resetSimulation);
+  const prevBtn = document.getElementById("prev-btn");
+  if (prevBtn) prevBtn.addEventListener("click", previousStep);
+  const nextBtn = document.getElementById("next-btn");
+  if (nextBtn) nextBtn.addEventListener("click", nextStep);
+  const pauseBtn = document.getElementById("pause-btn");
+  if (pauseBtn) pauseBtn.addEventListener("click", pauseSimulation);
 
   // Perbandingan
-  document
-    .getElementById("run-comparison")
-    .addEventListener("click", runAlgorithmComparison);
+  const runComp = document.getElementById("run-comparison");
+  if (runComp) runComp.addEventListener("click", runAlgorithmComparison);
 
-  // --- BARU: Event Listener untuk Hamburger Menu ---
+  // Hamburger menu
   const menuBtn = document.getElementById("mobile-menu-btn");
   const menu = document.getElementById("mobile-menu");
   const menuIcon = document.getElementById("mobile-menu-icon");
   const menuLinks = document.querySelectorAll(".mobile-menu-link");
-
-  menuBtn.addEventListener("click", () => {
-    menu.classList.toggle("hidden");
-    if (menu.classList.contains("hidden")) {
-      // Menu tertutup
-      menuIcon.classList.remove("fa-times");
-      menuIcon.classList.add("fa-bars");
-    } else {
-      // Menu terbuka
-      menuIcon.classList.remove("fa-bars");
-      menuIcon.classList.add("fa-times");
-    }
-  });
-
-  // Menutup menu saat link di-klik
-  menuLinks.forEach((link) => {
-    link.addEventListener("click", () => {
-      menu.classList.add("hidden");
-      menuIcon.classList.remove("fa-times");
-      menuIcon.classList.add("fa-bars");
+  if (menuBtn && menu && menuIcon) {
+    menuBtn.addEventListener("click", () => {
+      menu.classList.toggle("hidden");
+      if (menu.classList.contains("hidden")) {
+        menuIcon.classList.remove("fa-times");
+        menuIcon.classList.add("fa-bars");
+      } else {
+        menuIcon.classList.remove("fa-bars");
+        menuIcon.classList.add("fa-times");
+      }
     });
-  });
-  // --- Akhir dari listener hamburger ---
+  }
+  if (menuLinks)
+    menuLinks.forEach((link) => {
+      link.addEventListener("click", () => {
+        if (menu) menu.classList.add("hidden");
+        if (menuIcon) {
+          menuIcon.classList.remove("fa-times");
+          menuIcon.classList.add("fa-bars");
+        }
+      });
+    });
 
-  // Detail algoritma
-  document
-    .getElementById("fifo-detail-toggle")
-    .addEventListener("click", () => toggleAlgorithmDetail("fifo"));
-  document
-    .getElementById("lru-detail-toggle")
-    .addEventListener("click", () => toggleAlgorithmDetail("lru"));
-  document
-    .getElementById("optimal-detail-toggle")
-    .addEventListener("click", () => toggleAlgorithmDetail("optimal"));
+  // Detail algoritma toggles (cek ada)
+  const fd = document.getElementById("fifo-detail-toggle");
+  const ld = document.getElementById("lru-detail-toggle");
+  const od = document.getElementById("optimal-detail-toggle");
+  if (fd) fd.addEventListener("click", () => toggleAlgorithmDetail("fifo"));
+  if (ld) ld.addEventListener("click", () => toggleAlgorithmDetail("lru"));
+  if (od) od.addEventListener("click", () => toggleAlgorithmDetail("optimal"));
 
   // Smooth scroll
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
@@ -223,14 +219,14 @@ function setupEventListeners() {
 }
 
 function initializeCharts() {
-  // Chart.js defaults untuk dark mode baru
-  Chart.defaults.color = "#9ca3af"; // gray-400
-  Chart.defaults.borderColor = "#374151"; // gray-700
+  // Chart.js defaults
+  Chart.defaults.color = "#9ca3af";
+  Chart.defaults.borderColor = "#374151";
 
   // Chart performa
-  const performanceCtx = document
-    .getElementById("performance-chart")
-    .getContext("2d");
+  const performanceCanvas = document.getElementById("performance-chart");
+  if (!performanceCanvas) return;
+  const performanceCtx = performanceCanvas.getContext("2d");
   performanceChart = new Chart(performanceCtx, {
     type: "line",
     data: {
@@ -239,7 +235,7 @@ function initializeCharts() {
         {
           label: "Hit Rate (Kumulatif)",
           data: [],
-          borderColor: "#10b981", // success
+          borderColor: "#10b981",
           backgroundColor: "rgba(16, 185, 129, 0.1)",
           tension: 0.4,
           fill: true,
@@ -247,7 +243,7 @@ function initializeCharts() {
         {
           label: "Fault Rate (Kumulatif)",
           data: [],
-          borderColor: "#e11d48", // danger
+          borderColor: "#e11d48",
           backgroundColor: "rgba(225, 29, 72, 0.1)",
           tension: 0.4,
           fill: true,
@@ -272,9 +268,9 @@ function initializeCharts() {
   });
 
   // Chart perbandingan
-  const comparisonCtx = document
-    .getElementById("comparison-chart")
-    .getContext("2d");
+  const compCanvas = document.getElementById("comparison-chart");
+  if (!compCanvas) return;
+  const comparisonCtx = compCanvas.getContext("2d");
   comparisonChart = new Chart(comparisonCtx, {
     type: "bar",
     data: {
@@ -283,14 +279,13 @@ function initializeCharts() {
         {
           label: "Hit Rate (%)",
           data: [0, 0, 0],
-          backgroundColor: "#10b981", // success
+          backgroundColor: "#10b981",
         },
         {
           label: "Page Fault",
           data: [0, 0, 0],
-          backgroundColor: "#e11d48", // danger
+          backgroundColor: "#e11d48",
         },
-        // TODO: Tambahkan dataset untuk Total Cost
       ],
     },
     options: {
@@ -308,67 +303,57 @@ function initializeCharts() {
 function setAlgorithm(algorithm) {
   currentAlgorithm = algorithm;
 
-  // Update tampilan tombol
+  // Update tampilan tombol (cek ada)
   document.querySelectorAll(".algorithm-btn").forEach((btn) => {
-    btn.classList.remove(
-      "active",
-      "bg-primary",
-      "text-white",
-      "border-primary"
-    );
+    btn.classList.remove("active", "bg-primary", "text-white", "border-primary");
     btn.classList.add("border-gray-600", "text-gray-300");
   });
 
-  document
-    .getElementById(`${algorithm}-btn`)
-    .classList.add("active", "bg-primary", "text-white", "border-primary");
-  document
-    .getElementById(`${algorithm}-btn`)
-    .classList.remove("border-gray-600", "text-gray-300");
+  const btn = document.getElementById(`${algorithm}-btn`);
+  if (btn) {
+    btn.classList.add("active", "bg-primary", "text-white", "border-primary");
+    btn.classList.remove("border-gray-600", "text-gray-300");
+  }
 
-  // Update nama algoritma
+  // Update nama algoritma (cek element)
   const algorithmNames = {
     fifo: "FIFO (First-In, First-Out)",
     lru: "LRU (Least Recently Used)",
     optimal: "Optimal",
   };
-  document.getElementById("algorithm-name").textContent =
-    algorithmNames[algorithm];
+  const algNameEl = document.getElementById("algorithm-name");
+  if (algNameEl) algNameEl.textContent = algorithmNames[algorithm] || algorithm;
 
   resetSimulation();
 }
 
 function setReferencePreset(preset) {
   referenceString = preset;
-  document.getElementById("reference-input").value = preset.join(",");
+  const ri = document.getElementById("reference-input");
+  if (ri) ri.value = preset.join(",");
   resetSimulation();
   renderReferenceString();
 }
 
 function generateRandomReference() {
   const length = Math.floor(Math.random() * 15) + 10;
-  referenceString = Array.from(
-    { length },
-    () => Math.floor(Math.random() * 8) + 1
-  );
-
-  document.getElementById("reference-input").value = referenceString.join(",");
+  referenceString = Array.from({ length }, () => Math.floor(Math.random() * 8) + 1);
+  const ri = document.getElementById("reference-input");
+  if (ri) ri.value = referenceString.join(",");
   resetSimulation();
   renderReferenceString();
 }
 
 function generateComparisonReference() {
   const length = Math.floor(Math.random() * 15) + 10;
-  const reference = Array.from(
-    { length },
-    () => Math.floor(Math.random() * 8) + 1
-  );
-
-  document.getElementById("comparison-reference").value = reference.join(",");
+  const reference = Array.from({ length }, () => Math.floor(Math.random() * 8) + 1);
+  const cri = document.getElementById("comparison-reference");
+  if (cri) cri.value = reference.join(",");
 }
 
 function renderMemoryFrames() {
   const container = document.getElementById("memory-frames");
+  if (!container) return;
   container.innerHTML = "";
 
   for (let i = 0; i < frameCount; i++) {
@@ -391,31 +376,7 @@ function renderMemoryFrames() {
       frame.classList.add("filled");
     }
 
-    // Visualisasi Bit
-    if (memoryFrames[i]) {
-      // Tampilkan M-Bit (Dirty)
-      if (dirtyBits[i] === 1) {
-        const dirtyBitElement = document.createElement("div");
-        dirtyBitElement.className = "dirty-bit";
-        dirtyBitElement.textContent = "M";
-        frame.appendChild(dirtyBitElement);
-      }
-
-      // Tampilkan R-Bit (Use) - hanya untuk Clock
-      if (currentAlgorithm === "clock") {
-        const useBitElement = document.createElement("div");
-        useBitElement.className = "use-bit";
-        useBitElement.textContent = useBits[i];
-        frame.appendChild(useBitElement);
-      }
-    }
-
-    // Visualisasi Pointer Clock
-    if (currentAlgorithm === "clock") {
-      if (i === clockPointer) {
-        frame.classList.add("clock-pointer");
-      }
-    }
+    // (Removed: dirty-bit/use-bit/clock-pointer rendering)
 
     container.appendChild(frame);
   }
@@ -423,6 +384,7 @@ function renderMemoryFrames() {
 
 function renderReferenceString() {
   const container = document.getElementById("reference-string");
+  if (!container) return;
   container.innerHTML = "";
 
   referenceString.forEach((page, index) => {
@@ -436,33 +398,29 @@ function renderReferenceString() {
       pageElement.classList.add("processed");
       const stepData = timelineData[index];
       if (stepData) {
-        if (stepData.hit) {
-          pageElement.classList.add("hit");
-        } else {
-          pageElement.classList.add("miss");
-        }
+        if (stepData.hit) pageElement.classList.add("hit");
+        else pageElement.classList.add("miss");
       }
     } else if (index === currentStep) {
       pageElement.classList.add("active");
     }
 
     pageElement.addEventListener("click", () => {
-      if (!isSimulationRunning) {
-        goToStep(index);
-      }
+      if (!isSimulationRunning) goToStep(index);
     });
 
     container.appendChild(pageElement);
   });
 
-  document.getElementById(
-    "step-counter"
-  ).textContent = `${currentStep}/${referenceString.length}`;
+  const sc = document.getElementById("step-counter");
+  if (sc) sc.textContent = `${currentStep}/${referenceString.length}`;
+
   renderTimeline();
 }
 
 function renderTimeline() {
   const container = document.getElementById("timeline-container");
+  if (!container) return;
   container.innerHTML = "";
 
   for (let step = 0; step < timelineData.length; step++) {
@@ -484,13 +442,10 @@ function renderTimeline() {
       frameElement.className = "timeline-frame";
       frameElement.textContent = frames[i] || "";
 
-      if (stepData.hitIndex === i) {
-        frameElement.classList.add("hit");
-      } else if (stepData.missIndex === i) {
+      if (stepData.hitIndex === i) frameElement.classList.add("hit");
+      else if (stepData.missIndex === i) {
         frameElement.classList.add("miss");
-        if (stepData.replacedIndex === i) {
-          frameElement.classList.add("replaced");
-        }
+        if (stepData.replacedIndex === i) frameElement.classList.add("replaced");
       }
 
       framesContainer.appendChild(frameElement);
@@ -510,16 +465,15 @@ function startSimulation() {
     return;
   }
 
-  if (currentStep >= referenceString.length) {
-    resetSimulation();
-  }
+  if (currentStep >= referenceString.length) resetSimulation();
 
   isSimulationRunning = true;
-  document.getElementById("start-btn").innerHTML =
-    '<i class="fas fa-pause mr-2"></i> Jeda';
-  document.getElementById("pause-btn").innerHTML =
-    '<i class="fas fa-pause mr-2"></i>';
-  document.getElementById("status").textContent = "Berjalan";
+  const startBtn = document.getElementById("start-btn");
+  if (startBtn) startBtn.innerHTML = '<i class="fas fa-pause mr-2"></i> Jeda';
+  const pauseBtn = document.getElementById("pause-btn");
+  if (pauseBtn) pauseBtn.innerHTML = '<i class="fas fa-pause mr-2"></i>';
+  const status = document.getElementById("status");
+  if (status) status.textContent = "Berjalan";
 
   const interval = 1100 - simulationSpeed * 100;
   simulationInterval = setInterval(performStep, interval);
@@ -528,11 +482,12 @@ function startSimulation() {
 function pauseSimulation() {
   isSimulationRunning = false;
   clearInterval(simulationInterval);
-  document.getElementById("start-btn").innerHTML =
-    '<i class="fas fa-play mr-2"></i> Lanjutkan';
-  document.getElementById("pause-btn").innerHTML =
-    '<i class="fas fa-play mr-2"></i>';
-  document.getElementById("status").textContent = "Dijeda";
+  const startBtn = document.getElementById("start-btn");
+  if (startBtn) startBtn.innerHTML = '<i class="fas fa-play mr-2"></i> Lanjutkan';
+  const pauseBtn = document.getElementById("pause-btn");
+  if (pauseBtn) pauseBtn.innerHTML = '<i class="fas fa-play mr-2"></i>';
+  const status = document.getElementById("status");
+  if (status) status.textContent = "Dijeda";
 }
 
 function restartSimulation() {
@@ -555,44 +510,39 @@ function resetSimulation() {
   fifoQueue = [];
   lruQueue = [];
 
-  // Reset variabel baru
-  useBits = Array(frameCount).fill(0);
-  dirtyBits = Array(frameCount).fill(0);
-  clockPointer = 0;
-  pageFrequencies = {};
-  totalCost = 0; // Reset biaya
+  // Reset state yang tersisa
+  pageFrequencies = {}; // harmless, kept for compatibility (LFU removed)
+  totalCost = 0;
 
-  document.getElementById("start-btn").innerHTML =
-    '<i class="fas fa-play mr-2"></i> Mulai Simulasi';
-  document.getElementById("pause-btn").innerHTML =
-    '<i class="fas fa-pause mr-2"></i>';
-  document.getElementById("status").textContent = "Siap";
+  const startBtn = document.getElementById("start-btn");
+  if (startBtn) startBtn.innerHTML = '<i class="fas fa-play mr-2"></i> Mulai Simulasi';
+  const pauseBtn = document.getElementById("pause-btn");
+  if (pauseBtn) pauseBtn.innerHTML = '<i class="fas fa-pause mr-2"></i>';
+  const status = document.getElementById("status");
+  if (status) status.textContent = "Siap";
 
   const logContainer = document.getElementById("simulation-log");
-  logContainer.innerHTML =
-    '<p class="text-gray-500">Simulasi belum dimulai. Klik "Mulai Simulasi" untuk memulai.</p>';
+  if (logContainer)
+    logContainer.innerHTML = '<p class="text-gray-500">Simulasi belum dimulai. Klik "Mulai Simulasi" untuk memulai.</p>';
 
   updateStatistics();
   renderMemoryFrames();
   renderReferenceString();
   renderQueueVisualization();
 
-  // Atur visibilitas legenda & visualisasi antrian
-  if (currentAlgorithm === "clock") {
-    document.getElementById("clock-pointer-legend").classList.remove("hidden");
-  } else {
-    document.getElementById("clock-pointer-legend").classList.add("hidden");
+  // Atur visibilitas legenda clock jika ada element
+  const legend = document.getElementById("clock-pointer-legend");
+  if (legend) {
+    if (currentAlgorithm === "clock") legend.classList.remove("hidden");
+    else legend.classList.add("hidden");
   }
 
-  // LFU sekarang juga menggunakan FIFO queue untuk tie-breaking, jadi tampilkan
-  if (
-    currentAlgorithm === "fifo" ||
-    currentAlgorithm === "lru" ||
-    currentAlgorithm === "lfu"
-  ) {
-    document.getElementById("queue-visualization").classList.remove("hidden");
-  } else {
-    document.getElementById("queue-visualization").classList.add("hidden");
+  // Tampilkan/ sembunyikan queue visualization
+  const qv = document.getElementById("queue-visualization");
+  if (qv) {
+    if (currentAlgorithm === "fifo" || currentAlgorithm === "lru" || currentAlgorithm === "lfu")
+      qv.classList.remove("hidden");
+    else qv.classList.add("hidden");
   }
 
   if (performanceChart) {
@@ -617,12 +567,10 @@ function previousStep() {
       fifoQueue = [...prevData.previousFifoQueue];
       lruQueue = [...prevData.previousLruQueue];
 
-      // Restore state baru
-      useBits = [...prevData.previousUseBits];
-      dirtyBits = [...prevData.previousDirtyBits];
-      pageFrequencies = { ...prevData.previousPageFrequencies };
-      clockPointer = prevData.previousClockPointer;
-      totalCost = prevData.previousTotalCost; // Restore biaya
+      // restore other states (keamanan: fallback jika undefined)
+      // previousUseBits/previousDirtyBits removed in saved timeline (clean)
+      pageFrequencies = { ...(prevData.previousPageFrequencies || {}) };
+      totalCost = prevData.previousTotalCost || 0;
 
       timelineData.pop();
     } else {
@@ -641,9 +589,7 @@ function previousStep() {
 function nextStep() {
   if (isSimulationRunning) pauseSimulation();
 
-  if (currentStep < referenceString.length) {
-    performStep();
-  }
+  if (currentStep < referenceString.length) performStep();
 }
 
 function goToStep(step) {
@@ -651,10 +597,7 @@ function goToStep(step) {
 
   if (step >= 0 && step <= referenceString.length) {
     resetSimulation();
-    while (currentStep < step) {
-      performStep(true); // Silent mode
-    }
-
+    while (currentStep < step) performStep(true); // silent
     updateVisualization();
     renderReferenceString();
     updateStatistics();
@@ -666,14 +609,17 @@ function goToStep(step) {
 function performStep(silent = false) {
   if (currentStep >= referenceString.length) {
     pauseSimulation();
-    document.getElementById("status").textContent = "Selesai";
+    const status = document.getElementById("status");
+    if (status) status.textContent = "Selesai";
     if (!silent) addLog("Simulasi selesai!", "text-primary font-bold");
     return;
   }
 
   const page = referenceString[currentStep];
   const isHit = memoryFrames.includes(page);
-  const isWrite = document.getElementById("write-toggle").checked;
+  // safe read write-toggle (may have been removed from HTML)
+  const writeToggle = document.getElementById("write-toggle");
+  const isWrite = writeToggle ? writeToggle.checked : false;
 
   // Simpan state sebelumnya untuk undo
   const previousFrames = [...memoryFrames];
@@ -681,11 +627,8 @@ function performStep(silent = false) {
   const previousMissCount = missCount;
   const previousFifoQueue = [...fifoQueue];
   const previousLruQueue = [...lruQueue];
-  const previousUseBits = [...useBits];
-  const previousDirtyBits = [...dirtyBits];
-  const previousPageFrequencies = { ...pageFrequencies };
-  const previousClockPointer = clockPointer;
-  const previousTotalCost = totalCost; // Simpan biaya
+  const previousPageFrequencies = { ...(pageFrequencies || {}) };
+  const previousTotalCost = totalCost || 0;
 
   let hit = isHit;
   let replacedPage = null;
@@ -695,55 +638,20 @@ function performStep(silent = false) {
   if (hit) {
     // --- PAGE HIT ---
     hitCount++;
-    totalCost += MEMORY_ACCESS_COST; // Tambah biaya HIT
     frameIndex = memoryFrames.indexOf(page);
     if (!silent) {
-      addLog(
-        `Langkah ${
-          currentStep + 1
-        }: Page ${page} - HIT (frame ${frameIndex}) `,
-        "text-success"
-      );
+      addLog(`Langkah ${currentStep + 1}: Page ${page} - HIT (frame ${frameIndex}) `, "text-success");
     }
-
     if (currentAlgorithm === "lru") {
       const lruPageIndex = lruQueue.indexOf(page);
       if (lruPageIndex > -1) lruQueue.splice(lruPageIndex, 1);
       lruQueue.push(page);
     }
-    if (currentAlgorithm === "lfu") {
-      pageFrequencies[page]++;
-    }
-    if (currentAlgorithm === "clock") {
-      useBits[frameIndex] = 1;
-      if (!silent)
-        addLog(
-          `Use bit (R) untuk frame ${frameIndex} (Page ${page}) diatur ke 1`
-        );
-    }
-    if (isWrite) {
-      if (dirtyBits[frameIndex] === 0) {
-        // Hanya log jika berubah
-        dirtyBits[frameIndex] = 1;
-        if (!silent)
-          addLog(
-            `Dirty bit (M) untuk frame ${frameIndex} (Page ${page}) diatur ke 1 (WRITE)`,
-            "text-danger"
-          );
-      }
-    }
   } else {
     // --- PAGE FAULT (MISS) ---
     missCount++;
-    totalCost += DISK_READ_COST; // Tambah biaya MISS (selalu baca dari disk)
-
     if (!silent) {
-      addLog(
-        `Langkah ${
-          currentStep + 1
-        }: Page ${page} - Page Fault (Read)`,
-        "text-danger"
-      );
+      addLog(`Langkah ${currentStep + 1}: Page ${page} - Page Fault (Read)`, "text-danger");
     }
 
     const emptyIndex = memoryFrames.indexOf(null);
@@ -753,47 +661,21 @@ function performStep(silent = false) {
       memoryFrames[emptyIndex] = page;
       frameIndex = emptyIndex;
 
-      if (currentAlgorithm === "fifo" || currentAlgorithm === "lfu")
-        fifoQueue.push(page);
+      if (currentAlgorithm === "fifo") fifoQueue.push(page);
       if (currentAlgorithm === "lru") lruQueue.push(page);
-      if (currentAlgorithm === "lfu") {
-        if (!pageFrequencies[page]) pageFrequencies[page] = 0;
-        pageFrequencies[page]++;
-      }
-      if (currentAlgorithm === "clock") {
-        useBits[frameIndex] = 0;
-      }
-
-      dirtyBits[frameIndex] = isWrite ? 1 : 0; // Set M-Bit
 
       if (!silent) {
         addLog(`Page ${page} dimasukkan ke frame ${frameIndex} (kosong)`);
-        if (isWrite)
-          addLog(
-            `Dirty bit (M) untuk frame ${frameIndex} diatur ke 1 (WRITE)`,
-            "text-danger"
-          );
       }
     } else {
       // Tidak ada frame kosong, lakukan page replacement
       replaceIndex = getReplacementIndex();
       replacedPage = memoryFrames[replaceIndex];
 
-      // --- PENGECEKAN BIAYA WRITE (BARU) ---
-      if (dirtyBits[replaceIndex] === 1) {
-        totalCost += DISK_WRITE_COST;
-        if (!silent)
-          addLog(
-            `Biaya Tambahan: Page ${replacedPage} "kotor" (M=1). Cost: +${DISK_WRITE_COST} (Write)`,
-            "text-accent"
-          );
-      }
-      // ---
-
       memoryFrames[replaceIndex] = page;
       frameIndex = replaceIndex;
 
-      if (currentAlgorithm === "fifo" || currentAlgorithm === "lfu") {
+      if (currentAlgorithm === "fifo") {
         const victimInQueueIndex = fifoQueue.indexOf(replacedPage);
         if (victimInQueueIndex > -1) fifoQueue.splice(victimInQueueIndex, 1);
         fifoQueue.push(page);
@@ -803,31 +685,14 @@ function performStep(silent = false) {
         if (victimInQueueIndex > -1) lruQueue.splice(victimInQueueIndex, 1);
         lruQueue.push(page);
       }
-      if (currentAlgorithm === "lfu") {
-        if (!pageFrequencies[page]) pageFrequencies[page] = 0;
-        pageFrequencies[page]++;
-      }
-      if (currentAlgorithm === "clock") {
-        useBits[frameIndex] = 0;
-      }
-
-      dirtyBits[frameIndex] = isWrite ? 1 : 0; // Set M-Bit untuk halaman baru
 
       if (!silent) {
-        addLog(
-          `Page ${replacedPage} di frame ${replaceIndex} diganti oleh page ${page} (${currentAlgorithm.toUpperCase()})`,
-          "text-warning"
-        );
-        if (isWrite)
-          addLog(
-            `Dirty bit (M) untuk frame ${frameIndex} diatur ke 1 (WRITE)`,
-            "text-danger"
-          );
+        addLog(`Page ${replacedPage} di frame ${replaceIndex} diganti oleh page ${page} (${currentAlgorithm.toUpperCase()})`, "text-warning");
       }
     }
   }
 
-  // Simpan data timeline
+  // Simpan data timeline (simplified, no dirty/use bits)
   timelineData[currentStep] = {
     frames: [...memoryFrames],
     hit: hit,
@@ -839,17 +704,12 @@ function performStep(silent = false) {
     previousMissCount: previousMissCount,
     previousFifoQueue: previousFifoQueue,
     previousLruQueue: previousLruQueue,
-    previousUseBits: previousUseBits,
-    previousDirtyBits: previousDirtyBits,
     previousPageFrequencies: previousPageFrequencies,
-    previousClockPointer: previousClockPointer,
-    previousTotalCost: previousTotalCost, // Simpan biaya
+    previousTotalCost: previousTotalCost,
   };
 
   // Update visualisasi
-  if (!silent) {
-    updateVisualization(page, hit, frameIndex, replaceIndex);
-  }
+  if (!silent) updateVisualization(page, hit, frameIndex, replaceIndex);
 
   currentStep++;
 
@@ -862,185 +722,55 @@ function performStep(silent = false) {
 
   if (currentStep >= referenceString.length && !silent) {
     pauseSimulation();
-    document.getElementById("status").textContent = "Selesai";
+    const status = document.getElementById("status");
+    if (status) status.textContent = "Selesai";
     addLog("Simulasi selesai!", "text-primary font-bold");
   }
 }
 
 function getReplacementIndex() {
   switch (currentAlgorithm) {
-    case "fifo":
+    case "fifo": {
       const fifoVictim = fifoQueue[0];
       return memoryFrames.indexOf(fifoVictim);
-
-    case "lru":
+    }
+    case "lru": {
       const lruVictim = lruQueue[0];
       return memoryFrames.indexOf(lruVictim);
-
-    case "lfu":
-      return lfuReplacement();
-
-    case "clock":
-      return clockReplacement();
-
-    case "optimal":
+    }
+    case "optimal": {
       let farthestUse = -1;
       let replaceIndex = 0;
-
       for (let i = 0; i < frameCount; i++) {
         const page = memoryFrames[i];
         let nextUse = referenceString.slice(currentStep + 1).indexOf(page);
-
-        if (nextUse === -1) {
-          return i;
-        }
-
+        if (nextUse === -1) return i;
         if (nextUse > farthestUse) {
           farthestUse = nextUse;
           replaceIndex = i;
         }
       }
       return replaceIndex;
-
-    case "random":
-      return Math.floor(Math.random() * frameCount);
-
+    }
     default:
+      // fallback: ganti frame ke-0
       return 0;
   }
 }
 
-function lfuReplacement() {
-  let victimIndex = -1;
-  let minFrequency = Infinity;
-
-  let candidates = [];
-  for (let i = 0; i < frameCount; i++) {
-    const page = memoryFrames[i];
-    const freq = pageFrequencies[page] || 0;
-
-    if (freq < minFrequency) {
-      minFrequency = freq;
-      candidates = [i];
-    } else if (freq === minFrequency) {
-      candidates.push(i);
-    }
-  }
-
-  if (candidates.length === 1) {
-    victimIndex = candidates[0];
-  } else {
-    for (const pageInFifo of fifoQueue) {
-      const indexInFrames = memoryFrames.indexOf(pageInFifo);
-      if (candidates.includes(indexInFrames)) {
-        victimIndex = indexInFrames;
-        break;
-      }
-    }
-  }
-
-  if (victimIndex === -1) {
-    victimIndex = candidates[0];
-  }
-
-  if (victimIndex != -1)
-    addLog(
-      `LFU: Korban frame ${victimIndex} (Page ${memoryFrames[victimIndex]}) - Freq: ${minFrequency}`,
-      "text-yellow-400"
-    );
-  return victimIndex;
-}
-
-function clockReplacement() {
-  let pass = 1;
-  let initialPointer = clockPointer;
-  let passesCompleted = 0;
-
-  while (true) {
-    const rBit = useBits[clockPointer];
-    const mBit = dirtyBits[clockPointer];
-
-    // Pass 1: Cari (R=0, M=0)
-    if (pass === 1) {
-      if (rBit === 0 && mBit === 0) {
-        addLog(
-          `Clock (Pass 1): Pointer di frame ${clockPointer}. (R=0, M=0). Mengganti Page ${memoryFrames[clockPointer]}.`,
-          "text-yellow-400"
-        );
-        const victimIndex = clockPointer;
-        clockPointer = (clockPointer + 1) % frameCount;
-        return victimIndex;
-      }
-    }
-
-    // Pass 2: Cari (R=0, M=1), set R=0 saat scan
-    else if (pass === 2) {
-      if (rBit === 0 && mBit === 1) {
-        addLog(
-          `Clock (Pass 2): Pointer di frame ${clockPointer}. (R=0, M=1). Mengganti Page ${memoryFrames[clockPointer]}.`,
-          "text-yellow-400"
-        );
-        const victimIndex = clockPointer;
-        clockPointer = (clockPointer + 1) % frameCount;
-        return victimIndex;
-      }
-      if (rBit === 1) {
-        // addLog(`Clock (Pass 2): Pointer di frame ${clockPointer} (R=1). Set R=0.`);
-        useBits[clockPointer] = 0;
-      }
-    }
-
-    clockPointer = (clockPointer + 1) % frameCount;
-
-    if (clockPointer === initialPointer) {
-      passesCompleted++;
-      if (pass === 1) {
-        pass = 2;
-        addLog(
-          `Clock: Selesai Pass 1. Memulai Pass 2 (Cari R=0, M=1 & set R=0)`
-        );
-      } else {
-        pass = 1;
-        addLog(`Clock: Selesai Pass 2. Memulai Pass 1 (Cari R=0, M=0)`);
-      }
-
-      if (passesCompleted > 4) {
-        addLog(
-          `Clock: Safety break! Mengganti frame ${clockPointer}`,
-          "text-red-500"
-        );
-        return clockPointer;
-      }
-    }
-  }
-}
-
-function updateVisualization(
-  page = null,
-  isHit = null,
-  frameIndex = -1,
-  replacedIndex = -1
-) {
+function updateVisualization(page = null, isHit = null, frameIndex = -1, replacedIndex = -1) {
   document.querySelectorAll(".page-frame").forEach((frame) => {
-    frame.classList.remove(
-      "active",
-      "hit",
-      "miss",
-      "replaced",
-      "clock-pointer"
-    );
+    frame.classList.remove("active", "hit", "miss", "replaced", "clock-pointer");
   });
 
   if (page !== null && frameIndex !== -1) {
     const frameElement = document.getElementById(`frame-${frameIndex}`);
-    frameElement.classList.add("active");
-
-    if (isHit) {
-      frameElement.classList.add("hit");
-    } else {
-      frameElement.classList.add("miss");
-      if (replacedIndex !== -1) {
-        frameElement.classList.add("replaced");
+    if (frameElement) {
+      frameElement.classList.add("active");
+      if (isHit) frameElement.classList.add("hit");
+      else {
+        frameElement.classList.add("miss");
+        if (replacedIndex !== -1) frameElement.classList.add("replaced");
       }
     }
   }
@@ -1049,51 +779,47 @@ function updateVisualization(
 }
 
 function updateStatistics() {
-  document.getElementById("hit-count").textContent = hitCount;
-  document.getElementById("miss-count").textContent = missCount;
+  const hc = document.getElementById("hit-count");
+  const mc = document.getElementById("miss-count");
+  const hr = document.getElementById("hit-rate");
+  if (hc) hc.textContent = hitCount;
+  if (mc) mc.textContent = missCount;
 
   const total = hitCount + missCount;
   const hitRate = total > 0 ? Math.round((hitCount / total) * 100) : 0;
-  document.getElementById("hit-rate").textContent = `${hitRate}%`;
+  if (hr) hr.textContent = `${hitRate}%`;
 
-  document.getElementById("performance-hit").style.width = `${hitRate}%`;
-  document.getElementById("performance-miss").style.width = `${
-    total > 0 ? 100 - hitRate : 0
-  }%`;
-  document.getElementById("performance-hit-text").textContent = `${hitRate}%`;
-  document.getElementById("performance-miss-text").textContent = `${
-    total > 0 ? 100 - hitRate : 0
-  }%`;
+  const ph = document.getElementById("performance-hit");
+  const pm = document.getElementById("performance-miss");
+  if (ph) ph.style.width = `${hitRate}%`;
+  if (pm) pm.style.width = `${total > 0 ? 100 - hitRate : 0}%`;
+
+  const pht = document.getElementById("performance-hit-text");
+  const pmt = document.getElementById("performance-miss-text");
+  if (pht) pht.textContent = `${hitRate}%`;
+  if (pmt) pmt.textContent = `${total > 0 ? 100 - hitRate : 0}%`;
 }
 
 function calculateOptimalHitRate() {
-  // Fungsi ini hanya digunakan untuk perbandingan,
-  // tapi kita tetap simpan untuk analisis jika diperlukan
   let optimalHits = 0;
   let optimalFrames = Array(frameCount).fill(null);
-
   for (let i = 0; i < referenceString.length; i++) {
     const page = referenceString[i];
-
     if (optimalFrames.includes(page)) {
       optimalHits++;
     } else {
       const emptyIndex = optimalFrames.indexOf(null);
-      if (emptyIndex !== -1) {
-        optimalFrames[emptyIndex] = page;
-      } else {
+      if (emptyIndex !== -1) optimalFrames[emptyIndex] = page;
+      else {
         let farthestUse = -1;
         let replaceIndex = 0;
-
         for (let j = 0; j < frameCount; j++) {
           const framePage = optimalFrames[j];
           let nextUse = referenceString.slice(i + 1).indexOf(framePage);
-
           if (nextUse === -1) {
             replaceIndex = j;
             break;
           }
-
           if (nextUse > farthestUse) {
             farthestUse = nextUse;
             replaceIndex = j;
@@ -1103,56 +829,50 @@ function calculateOptimalHitRate() {
       }
     }
   }
-
   const total = referenceString.length;
   return total > 0 ? Math.round((optimalHits / total) * 100) : 0;
 }
 
 function updatePerformanceChart() {
-  if (performanceChart && timelineData.length > 0) {
-    const labels = [];
-    const hitRates = [];
-    const faultRates = [];
+  if (!performanceChart || timelineData.length === 0) return;
 
-    let currentHits = 0;
-    let currentMisses = 0;
+  const labels = [];
+  const hitRates = [];
+  const faultRates = [];
+  let currentHits = 0;
+  let currentMisses = 0;
 
-    for (let i = 0; i < timelineData.length; i++) {
-      labels.push(i + 1);
+  for (let i = 0; i < timelineData.length; i++) {
+    labels.push(i + 1);
+    const data = timelineData[i];
+    if (data.hit) currentHits++;
+    else currentMisses++;
 
-      const data = timelineData[i];
-      if (data.hit) {
-        currentHits++;
-      } else {
-        currentMisses++;
-      }
+    const total = currentHits + currentMisses;
+    const currentHitRate = total > 0 ? Math.round((currentHits / total) * 100) : 0;
+    const currentFaultRate = total > 0 ? Math.round((currentMisses / total) * 100) : 0;
 
-      const total = currentHits + currentMisses;
-      const currentHitRate =
-        total > 0 ? Math.round((currentHits / total) * 100) : 0;
-      const currentFaultRate =
-        total > 0 ? Math.round((currentMisses / total) * 100) : 0;
-
-      hitRates.push(currentHitRate);
-      faultRates.push(currentFaultRate);
-    }
-
-    performanceChart.data.labels = labels;
-    performanceChart.data.datasets[0].data = hitRates;
-    performanceChart.data.datasets[1].data = faultRates;
-    performanceChart.update();
+    hitRates.push(currentHitRate);
+    faultRates.push(currentFaultRate);
   }
+
+  performanceChart.data.labels = labels;
+  performanceChart.data.datasets[0].data = hitRates;
+  performanceChart.data.datasets[1].data = faultRates;
+  performanceChart.update();
 }
 
 function runAlgorithmComparison() {
-  const referenceInput = document.getElementById("comparison-reference").value;
-  const comparisonReference = referenceInput
+  const referenceInput = document.getElementById("comparison-reference");
+  if (!referenceInput) {
+    alert("Tidak menemukan input perbandingan!");
+    return;
+  }
+  const comparisonReference = referenceInput.value
     .split(",")
     .map((num) => parseInt(num.trim()))
     .filter((num) => !isNaN(num));
-  const comparisonFrameCount = parseInt(
-    document.getElementById("comparison-frame-slider").value
-  );
+  const comparisonFrameCount = parseInt(document.getElementById("comparison-frame-slider").value || frameCount);
 
   if (comparisonReference.length === 0) {
     alert("Masukkan string referensi yang valid!");
@@ -1160,8 +880,10 @@ function runAlgorithmComparison() {
   }
 
   const compareBtn = document.getElementById("run-comparison");
-  compareBtn.disabled = true;
-  compareBtn.classList.add("loading-btn");
+  if (compareBtn) {
+    compareBtn.disabled = true;
+    compareBtn.classList.add("loading-btn");
+  }
 
   const originalAlgorithm = currentAlgorithm;
   const originalReference = [...referenceString];
@@ -1179,17 +901,14 @@ function runAlgorithmComparison() {
 
       resetSimulation();
 
-      // Set "Write" toggle ke false untuk perbandingan yang adil (fair)
-      // Biaya I/O dari M-bit akan diabaikan di sini
-      document.getElementById("write-toggle").checked = false;
+      // ensure no error if write-toggle removed
+      const writeToggle = document.getElementById("write-toggle");
+      if (writeToggle) writeToggle.checked = false;
 
-      while (currentStep < referenceString.length) {
-        performStep(true); // Silent mode
-      }
+      while (currentStep < referenceString.length) performStep(true); // silent
 
       const total = hitCount + missCount;
       const hitRate = total > 0 ? Math.round((hitCount / total) * 100) : 0;
-
       hitRates.push(hitRate);
       faultCounts.push(missCount);
 
@@ -1201,27 +920,28 @@ function runAlgorithmComparison() {
     setAlgorithm(originalAlgorithm);
     referenceString = [...originalReference];
     frameCount = originalFrameCount;
-    document.getElementById("reference-input").value =
-      referenceString.join(",");
-    document.getElementById("frame-slider").value = frameCount;
-    document.getElementById("frame-value").textContent = frameCount;
+    const ri = document.getElementById("reference-input");
+    if (ri) ri.value = referenceString.join(",");
+    const fs = document.getElementById("frame-slider");
+    if (fs) fs.value = frameCount;
+    const fv = document.getElementById("frame-value");
+    if (fv) fv.textContent = frameCount;
     resetSimulation();
     renderReferenceString();
 
-    // Update chart perbandingan
-    comparisonChart.data.labels = [
-      "FIFO",
-      "LRU",
-      "Optimal",
-    ];
-    comparisonChart.data.datasets[0].data = hitRates;
-    comparisonChart.data.datasets[1].data = faultCounts;
-    comparisonChart.update();
+    if (comparisonChart) {
+      comparisonChart.data.labels = ["FIFO", "LRU", "Optimal"];
+      comparisonChart.data.datasets[0].data = hitRates;
+      comparisonChart.data.datasets[1].data = faultCounts;
+      comparisonChart.update();
+    }
 
-    addLog(`Perbandingan selesai!`, "text-primary font-bold");
+    addLog("Perbandingan selesai!", "text-primary font-bold");
 
-    compareBtn.disabled = false;
-    compareBtn.classList.remove("loading-btn");
+    if (compareBtn) {
+      compareBtn.disabled = false;
+      compareBtn.classList.remove("loading-btn");
+    }
   }, 50);
 }
 
@@ -1229,13 +949,13 @@ function renderQueueVisualization() {
   const container = document.getElementById("queue-container");
   const visualizer = document.getElementById("queue-visualization");
   const algoNameEl = document.getElementById("queue-algo-name");
+  if (!container || !visualizer || !algoNameEl) return;
   container.innerHTML = "";
 
   let queue = [];
-  if (currentAlgorithm === "fifo" || currentAlgorithm === "lfu") {
+  if (currentAlgorithm === "fifo") {
     queue = fifoQueue;
-    algoNameEl.textContent =
-      currentAlgorithm === "lfu" ? "LFU (FIFO Tie-break)" : "FIFO";
+    algoNameEl.textContent = "FIFO";
     visualizer.classList.remove("hidden");
   } else if (currentAlgorithm === "lru") {
     queue = lruQueue;
@@ -1247,8 +967,7 @@ function renderQueueVisualization() {
   }
 
   if (queue.length === 0) {
-    container.innerHTML =
-      '<span class="text-gray-500 italic">Antrian kosong</span>';
+    container.innerHTML = '<span class="text-gray-500 italic">Antrian kosong</span>';
     return;
   }
 
@@ -1260,14 +979,8 @@ function renderQueueVisualization() {
     const labelElement = document.createElement("div");
     labelElement.className = "queue-label";
 
-    if (index === 0) {
-      labelElement.textContent =
-        currentAlgorithm === "lru" ? "TERLAMA" : "DEPAN";
-    }
-    if (index === queue.length - 1) {
-      labelElement.textContent =
-        currentAlgorithm === "lru" ? "TERBARU" : "BELAKANG";
-    }
+    if (index === 0) labelElement.textContent = currentAlgorithm === "lru" ? "TERLAMA" : "DEPAN";
+    if (index === queue.length - 1) labelElement.textContent = currentAlgorithm === "lru" ? "TERBARU" : "BELAKANG";
 
     const wrapper = document.createElement("div");
     wrapper.appendChild(pageElement);
@@ -1278,9 +991,8 @@ function renderQueueVisualization() {
 
 function toggleAlgorithmDetail(algorithm) {
   const detailElement = document.getElementById(`${algorithm}-detail`);
-  const toggleIcon = document
-    .getElementById(`${algorithm}-detail-toggle`)
-    .querySelector("i");
+  const toggleIcon = document.getElementById(`${algorithm}-detail-toggle`)?.querySelector("i");
+  if (!detailElement || !toggleIcon) return;
 
   if (detailElement.classList.contains("open")) {
     detailElement.classList.remove("open");
@@ -1288,9 +1000,7 @@ function toggleAlgorithmDetail(algorithm) {
     toggleIcon.classList.add("fa-chevron-down");
     toggleIcon.classList.remove("rotate-180");
   } else {
-    document.querySelectorAll(".algorithm-details").forEach((el) => {
-      el.classList.remove("open");
-    });
+    document.querySelectorAll(".algorithm-details").forEach((el) => el.classList.remove("open"));
     document.querySelectorAll(".fa-chevron-up").forEach((icon) => {
       icon.classList.remove("fa-chevron-up");
       icon.classList.add("fa-chevron-down");
@@ -1306,30 +1016,29 @@ function toggleAlgorithmDetail(algorithm) {
 
 function addLog(message, className = "text-gray-300") {
   const logContainer = document.getElementById("simulation-log");
+  if (!logContainer) return;
 
   const defaultMessage = logContainer.querySelector(".text-gray-500");
-  if (defaultMessage) {
-    defaultMessage.remove();
-  }
+  if (defaultMessage) defaultMessage.remove();
 
   const logEntry = document.createElement("p");
   logEntry.className = `${className} mb-1`;
   logEntry.textContent = message;
 
   logContainer.appendChild(logEntry);
-
-  while (logContainer.children.length > 100) {
-    logContainer.removeChild(logContainer.firstChild);
-  }
-
+  while (logContainer.children.length > 100) logContainer.removeChild(logContainer.firstChild);
   logContainer.scrollTop = logContainer.scrollHeight;
 }
 
-// Tutup menu saat link diklik
+// Tutup menu saat link diklik (safety)
 document.querySelectorAll(".mobile-menu-link").forEach((link) => {
   link.addEventListener("click", () => {
-    document.getElementById("mobile-menu").classList.add("hidden");
-    document.getElementById("mobile-menu-icon").classList.remove("fa-xmark");
-    document.getElementById("mobile-menu-icon").classList.add("fa-bars");
+    const mm = document.getElementById("mobile-menu");
+    const mi = document.getElementById("mobile-menu-icon");
+    if (mm) mm.classList.add("hidden");
+    if (mi) {
+      mi.classList.remove("fa-xmark");
+      mi.classList.add("fa-bars");
+    }
   });
 });
