@@ -313,13 +313,7 @@
             </div>
           </div>
 
-          <div class="mb-6">
-            <label for="write-toggle" class="flex items-center space-x-3 text-gray-300 cursor-pointer">
-              <input type="checkbox" id="write-toggle"
-                class="form-checkbox bg-gray-700 border-gray-600 text-primary rounded focus:ring-primary focus:ring-offset-deep" />
-              <span>Simulasikan "Write" (Dirty Bit / M-Bit)</span>
-            </label>
-          </div>
+         <!--hapus dirty-->
 
           <div class="mb-6">
             <label class="block text-gray-300 mb-2">Kecepatan Simulasi</label>
@@ -382,16 +376,7 @@
 
             <div id="memory-frames" class="flex flex-wrap justify-center mb-6"></div>
 
-            <div id="clock-pointer-legend" class="text-center text-sm text-gray-400 mb-4 hidden">
-              <span class="inline-block w-4 h-4 border-4 border-warning rounded-full mr-2 align-middle"></span>
-              Pointer Clock
-              <span
-                class="inline-block w-4 h-4 bg-secondary text-deep rounded-full ml-4 mr-2 align-middle text-xs leading-4">R</span>
-              Use Bit (Referenced)
-              <span
-                class="inline-block w-4 h-4 bg-danger text-white rounded-full ml-4 mr-2 align-middle text-xs leading-4">M</span>
-              Dirty Bit (Modified)
-            </div>
+            <!--hapus dirty-->
 
             <div id="queue-visualization" class="mt-4 mb-6 hidden">
               <h4 class="font-bold text-gray-300 mb-2">
@@ -567,11 +552,7 @@
               Algoritma page replacement menentukan halaman mana yang akan
               digantikan ketika terjadi page fault
             </li>
-            <li>
-              Dirty Bit (M-Bit): Menandai halaman yang telah dimodifikasi.
-              Halaman "kotor" harus ditulis ke disk sebelum diganti, yang
-              lebih "mahal" daripada mengganti halaman "bersih".
-            </li>
+            <!--hapus dirty-->
           </ul>
         </div>
       </div>
@@ -631,7 +612,3 @@
 </body>
 
 </html>
-
-
-
-
